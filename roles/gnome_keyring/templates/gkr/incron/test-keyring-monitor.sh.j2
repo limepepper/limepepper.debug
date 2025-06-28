@@ -1,0 +1,59 @@
+#!/bin/bash
+set -eu ; set -o pipefail
+
+# Test script for keyring monitoring
+# This script uses secret-tool to interact with the keyring and verify monitoring is working
+
+KEYRING_FILE="/home/fedora/.local/share/keyrings/login.keyring"
+LOG_FILE="/opt/gkr-debug/keyring-monitor.log"
+
+echo "Testing keyring monitoring..."
+
+# Check if incrond is running
+if ! systemctl is-active --quiet incrond; then
+    echo "ERROR: incrond service is not running"
+    exit 1
+fi
+
+# Check if monitoring script exists
+if [[ ! -f "/opt/gkr-debug/bin/gkr-keyring-monitor.sh" ]]; then
+    echo "ERROR: Monitoring script not found"
+    exit 1
+fi
+
+# Use secret-tool to interact with the keyring
+echo "Using secret-tool to interact with keyring..."
+
+# Try to store a test secret (this should trigger monitoring)
+echo "Storing test secret..."
+if secret-tool store --label="test-pass" test-key "regreg" 2>/dev/null; then
+    echo "Successfully stored test secret"
+else
+    echo "Failed to store test secret (may already exist)"
+fi
+
+# Try to retrieve the secret to trigger another interaction
+echo "Retrieving test secret..."
+if secret-tool lookup test-key 2>/dev/null; then
+    echo "Successfully retrieved test secret"
+else
+    echo "Failed to retrieve test secret"
+fi
+
+# Wait a moment for the events to be processed
+sleep 2
+
+# Check if log file was created and contains entries
+if [[ -f "${LOG_FILE}" ]]; then
+    echo "Monitoring log file created successfully"
+    echo "Recent log entries:"
+    tail -5 "${LOG_FILE}"
+else
+    echo "WARNING: No log file found at ${LOG_FILE}"
+fi
+
+# Check if backup was created
+BACKUP_COUNT=$(find /opt/gkr-debug/keyring-backups -name "*.modified" 2>/dev/null | wc -l)
+echo "Backup files created: ${BACKUP_COUNT}"
+
+echo "Test completed" 

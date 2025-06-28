@@ -1,0 +1,54 @@
+---
+
+- name: Configure Gkr logging for Linux
+  tags: gkr-config
+  block:
+    # TODO: initially removing selinux problems, but prod has selinux enabled
+    - name: Avoid selinux making this harder
+      ansible.posix.selinux:
+        policy: targeted
+        state: permissive
+
+    - name: Create script dir
+      ansible.builtin.file:
+        path: "{{ gkr_script_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create keyring backup directory
+      ansible.builtin.file:
+        path: "{{ gkr_backup_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Ensure keyring directory exists as incron requires it
+      ansible.builtin.file:
+        path: "{{ gkr_keyring_dir }}"
+        state: directory
+        owner: fedora
+        group: fedora
+        mode: "0700"
+
+    - name: Inject a shim to replace gnome-keyring-daemon
+      tags: always
+      ansible.builtin.include_tasks: _wrapper.yml
+
+    - name: Install incron config to watch login.keyring
+      tags: always
+      ansible.builtin.include_tasks: _incron.yml
+
+    - name: Make auditd watch the relevant executables
+      tags: always
+      ansible.builtin.include_tasks: _auditd.yml
+
+    - name: Install d-bus config to inject Gkr debug
+      tags: always
+      ansible.builtin.include_tasks: _dbus.yml
+
+    - name: Install systemd config to inject Gkr debug
+      tags: always
+      ansible.builtin.include_tasks: _systemd.yml

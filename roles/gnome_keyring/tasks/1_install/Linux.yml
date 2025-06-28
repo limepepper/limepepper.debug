@@ -1,0 +1,12 @@
+---
+
+- name: Install Grk debug packages on Linux
+  tags: gkr-install
+  block:
+    - name: Install Grk debug repo packages
+      ansible.builtin.package:
+        name: "{{ gkr_package_repos }}"
+
+    - name: Install Grk debug packages
+      ansible.builtin.package:
+        name: "{{ gkr_packages }}"

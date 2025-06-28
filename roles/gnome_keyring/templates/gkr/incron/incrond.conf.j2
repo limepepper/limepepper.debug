@@ -1,0 +1,5 @@
+# Incrond configuration for gnome-keyring monitoring
+# This file is managed by Ansible - do not edit manually
+
+# Monitor the login keyring file for changes
+{{ gkr_keyring_dir }} IN_MODIFY,IN_CLOSE_WRITE,IN_CREATE,IN_DELETE,IN_MOVED_TO,IN_MOVED_FROM {{ gkr_keyring_monitor_path }} $@ $# $% 

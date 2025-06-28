@@ -1,0 +1,25 @@
+---
+
+- name: Configure Systemd units Gkr debug
+  tags: gkr-config-systemd
+  block:
+
+    - name: Install systemd user service unit
+      ansible.builtin.template:
+        src: gkr/systemd/gnome-keyring-daemon.service.j2
+        dest: "{{ gkr_systemd_user_service_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Systemd daemon-reload
+
+    - name: Install socket unit
+      ansible.builtin.template:
+        src: gkr/systemd/gnome-keyring-daemon.socket.j2
+        dest: "{{ gkr_systemd_user_socket_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Systemd daemon-reload

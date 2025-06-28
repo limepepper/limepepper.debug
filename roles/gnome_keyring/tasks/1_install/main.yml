@@ -1,0 +1,16 @@
+---
+- name: Install Grk debug packages
+  tags: gkr-install
+  block:
+    - name: Call the distro specific tasks
+      ansible.builtin.include_tasks: "{{ include_install_tasks }}"
+      tags: always
+      with_first_found:
+        - files:
+            - "{{ ansible_distribution }}-{{ ansible_distribution_version}}.yml"
+            - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+            - "{{ ansible_distribution }}.yml"
+            - "{{ ansible_os_family }}.yml"
+            - "{{ ansible_system }}.yml"
+      loop_control:
+        loop_var: include_install_tasks

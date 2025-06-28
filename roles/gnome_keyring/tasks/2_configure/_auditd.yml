@@ -1,0 +1,16 @@
+---
+
+- name: Configure Auditd Gkr debug
+  tags: gkr-config-auditd
+  block:
+
+    - name: Install auditd rule for gnome-keyring-daemon
+      ansible.builtin.template:
+        src: gkr/auditd/gnome-keyring.rules.j2
+        dest: "{{ gkr_auditd_rules_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload auditd rules
+        

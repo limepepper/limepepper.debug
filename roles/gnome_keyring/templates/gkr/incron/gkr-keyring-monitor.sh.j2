@@ -1,0 +1,63 @@
+#!/bin/bash
+set -eu ; set -o pipefail
+
+# Keyring monitoring script
+# This script monitors changes to the login keyring file and creates timestamped copies
+
+KEYRING_FILE="{{ gkr_keyring_dir }}/login.keyring"
+BACKUP_DIR="{{ gkr_backup_dir }}"
+LOG_FILE="/opt/gkr-debug/keyring-monitor.log"
+
+# Incrond passes: $1=path, $2=filename, $3=event
+WATCHED_PATH="${1:-}"
+FILENAME="${2:-}"
+EVENT="${3:-}"
+
+# Create backup directory if it doesn't exist
+mkdir -p "${BACKUP_DIR}"
+
+# Function to log messages with ISO timestamp
+log_message() {
+    local message="$1"
+    echo "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ") - ${message}" >> "${LOG_FILE}"
+}
+
+# Function to create timestamped backup
+create_backup() {
+    local event="$1"
+    local timestamp=$(date -u +"%Y%m%d_%H%M%S_%3N")
+    local checksum=""
+    
+    if [[ -f "${KEYRING_FILE}" ]]; then
+        # Calculate SHA256 checksum of the file
+        checksum=$(sha256sum "${KEYRING_FILE}" | cut -d' ' -f1 | head -c 8)
+        local backup_file="${BACKUP_DIR}/login.keyring.${timestamp}.${checksum}.${event}"
+        
+        cp "${KEYRING_FILE}" "${backup_file}"
+        log_message "Created backup: ${backup_file} (event: ${event}, checksum: ${checksum})"
+    else
+        log_message "File ${KEYRING_FILE} does not exist, cannot create backup (event: ${event})"
+    fi
+}
+
+# Only process events for the login.keyring file
+if [[ "${FILENAME}" != "login.keyring" ]]; then
+    log_message "Ignoring event for file: ${FILENAME} (event: ${EVENT})"
+    exit 0
+fi
+
+# Main logic based on the event type
+case "${EVENT}" in
+    "IN_MODIFY"|"IN_CLOSE_WRITE")
+        create_backup "modified"
+        ;;
+    "IN_MOVED_TO"|"IN_CREATE")
+        create_backup "created"
+        ;;
+    "IN_DELETE"|"IN_MOVED_FROM")
+        log_message "File ${KEYRING_FILE} was deleted or moved (event: ${EVENT})"
+        ;;
+    *)
+        log_message "Unknown event: ${EVENT} for file ${FILENAME}"
+        ;;
+esac 

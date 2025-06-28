@@ -1,0 +1,95 @@
+{# set detach-on-fork on #}
+set follow-fork-mode child
+set breakpoint pending on
+set pagination off
+set logging enabled on
+set debuginfod enabled on
+set debug timestamp on
+
+# show startup-with-shell
+# set startup-with-shell off
+
+# Failure mode configuration
+# Set to: 1=fuzzing consecutive, 2=always fail, 3=fail 1 in X, 4=disable failing
+set $failure_mode = {{ gkr_failure_mode }}
+
+# Mode 1 (fuzzing consecutive) parameters
+set $fail_count = 0
+set $consecutive_failures = 0
+set $failure_state = 0
+set $failure_length = 0
+
+# Mode 3 (fail 1 in X) parameters  
+# Fail every Xth call
+set $fail_interval = 10  
+
+break sec_alloc
+commands
+  silent
+  set $fail_count = $fail_count + 1
+  
+  # Mode 1: Fuzzing consecutive failures
+  if ($failure_mode == 1)
+    # Transition to failure state every 15 calls
+    if ($fail_count % 15 == 0 && $failure_state == 0)
+      set $failure_state = 1
+      set $failure_length = ($fail_count / 15) % 5 + 1
+      set $consecutive_failures = 0
+      print "Starting failure pattern at call $fail_count (will fail $failure_length times)"
+    end
+    
+    # Handle failure state
+    if ($failure_state == 1)
+      set $consecutive_failures = $consecutive_failures + 1
+      print "Simulated sec_alloc failure at call $fail_count (consecutive failure $consecutive_failures/$failure_length)"
+      
+      if ($consecutive_failures >= $failure_length)
+        set $failure_state = 0
+        print "Ending failure pattern at call $fail_count"
+      end
+      
+      return (void*)0
+    end
+  end
+  
+  # Mode 2: Always fail
+  if ($failure_mode == 2)
+    print "Simulated sec_alloc failure at call $fail_count (always fail mode)"
+    return (void*)0
+  end
+  
+  # Mode 3: Fail 1 in every X requests
+  if ($failure_mode == 3)
+    if ($fail_count % $fail_interval == 0)
+      print "Simulated sec_alloc failure at call $fail_count (fail 1 in $fail_interval mode)"
+      return (void*)0
+    end
+  end
+  
+  # Mode 4: Disable failing (do nothing, just continue)
+  if ($failure_mode == 4)
+    print "sec_alloc call $fail_count (failure injection disabled)"
+  end
+  
+  continue
+end
+
+break gkm_wrap_prompt_done_credential
+    commands
+    silent
+    bt
+    {# x/s ((GkmWrapPrompt*)self)->prompt_data #}
+    print "Function called with password: %s", *(char**)($rdi+0x18)
+    {# print *attrs@10 #}
+    continue
+end
+
+break fix_login_keyring_if_unlock_failed
+commands
+  silent
+  bt
+  print "Fix login keyring called!"
+  continue
+end
+
+run

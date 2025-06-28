@@ -1,0 +1,29 @@
+---
+
+- name: Configure d-bus to use Gkr debug
+  tags: gkr-config-dbus
+  block:
+
+    - name: Install d-bus config
+      ansible.builtin.template:
+        src: gkr/dbus/org.gnome.keyring.service.j2
+        dest: "{{ gkr_gnome_keyring_service_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install d-bus config for org.freedesktop.secrets.service
+      ansible.builtin.template:
+        src: gkr/dbus/org.freedesktop.secrets.service.j2
+        dest: "{{ gkr_freedesktop_secrets_service_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install d-bus config for org.freedesktop.impl.portal.Secret
+      ansible.builtin.template:
+        src: gkr/dbus/org.freedesktop.impl.portal.Secret.service.j2
+        dest: "{{ gkr_freedesktop_portal_secret_service_path }}"
+        owner: root
+        group: root
+        mode: "0644"

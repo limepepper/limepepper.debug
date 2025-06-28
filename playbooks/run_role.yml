@@ -1,0 +1,25 @@
+---
+
+- name: All plays must be named to appease ansible-lint
+  hosts: "{{ run_role_hosts|default('all') }}"
+  become: "{{ run_role_become|default(true) }}"
+  gather_facts: false
+  strategy: "{{ _strategy | default('linear')}}"
+  tasks:
+    - name: Run role
+      tags: always
+      ansible.builtin.include_role:
+        name: "limepepper.debug.{{ run_role_name }}"
+
+    - name: Warn in Check mode
+      tags: always
+      ansible.builtin.debug:
+        msg: |
+          # This was run in check mode
+          #   ____ _               _      __  __           _      _
+          #  / ___| |__   ___  ___| | __ |  \/  | ___   __| | ___| |
+          # | |   | '_ \ / _ \/ __| |/ / | |\/| |/ _ \ / _` |/ _ \ |
+          # | |___| | | |  __/ (__|   <  | |  | | (_) | (_| |  __/_|
+          #  \____|_| |_|\___|\___|_|\_\ |_|  |_|\___/ \__,_|\___(_)
+          #
+      when: ansible_check_mode

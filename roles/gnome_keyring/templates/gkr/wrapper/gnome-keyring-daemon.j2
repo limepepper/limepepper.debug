@@ -1,0 +1,14 @@
+#!/bin/bash
+
+mkdir -p "${HOME}/.local/log"
+echo "keyring-wrapper: PID=$$ called with: $@" >> "${HOME}/.local/log/gkr-wrapper.log"
+
+exec /usr/bin/gdb \
+  --batch \
+  --return-child-result \
+  -ex "set logging file ${HOME}/.local/log/gdb.run.$$.txt" \
+  -ex "set pagination off" \
+  -ex "set breakpoint pending on" \
+  -ex "set debuginfod enabled on" \
+  -x "/opt/gkr-debug/gkr-debug.gdb" \
+  --args /opt/gkr-debug/bin/gnome-keyring-daemon "$@"

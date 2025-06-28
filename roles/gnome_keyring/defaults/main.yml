@@ -1,0 +1,50 @@
+---
+
+# we move original binary to temp place, to allow shim in place
+gkr_daemon_path: /usr/bin/gnome-keyring-daemon
+gkr_real_path: /opt/gkr-debug/bin/gnome-keyring-daemon
+
+gkr_package_repos: "{{ _gkr_package_repos | default([]) }}"
+gkr_failure_mode: 4
+gkr_gdb_script_path: /opt/gkr-debug/gkr-debug.gdb
+
+# Directory paths
+gkr_script_dir: /opt/gkr-debug/bin
+gkr_backup_dir: /opt/gkr-debug/keyring-backups
+gkr_keyring_dir: /home/fedora/.local/share/keyrings
+
+# Script paths
+gkr_debug_wrapper_path: /opt/gkr-debug/bin/gkr-debug-wrapper.sh
+gkr_keyring_monitor_path: /opt/gkr-debug/bin/gkr-keyring-monitor.sh
+gkr_test_monitor_path: /opt/gkr-debug/bin/test-keyring-monitor.sh
+
+# Configuration file paths
+gkr_incrond_config_path: /etc/incron.d/gkr-keyring-monitor
+gkr_auditd_rules_path: /etc/audit/rules.d/01-gnome-keyring.rules
+
+# D-Bus service paths
+gkr_gnome_keyring_service_path: /usr/share/dbus-1/services/org.gnome.keyring.service
+gkr_freedesktop_secrets_service_path: /usr/share/dbus-1/services/org.freedesktop.secrets.service
+gkr_freedesktop_portal_secret_service_path: /usr/share/dbus-1/services/org.freedesktop.impl.portal.Secret.service
+
+# Systemd service paths
+gkr_systemd_user_service_path: /usr/lib/systemd/user/gnome-keyring-daemon.service
+gkr_systemd_user_socket_path: /usr/lib/systemd/user/gnome-keyring-daemon.socket
+
+gkr_packages:
+  - python3-libdnf5
+  - gdb
+  - glib2-debuginfo
+  - libgcrypt-debuginfo
+  - systemd-libs-debuginfo
+  - glibc-debuginfo
+  - p11-kit-debuginfo
+  - pcre2-debuginfo
+  - zlib-ng-compat-debuginfo
+  - libmount-debuginfo
+  - libselinux-debuginfo
+  - incrond
+  - inotify-tools
+  - tar
+  - wget
+  - curl

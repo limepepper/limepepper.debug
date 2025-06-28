@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+# shellcheck disable=SC2154
+exec gdb --batch-silent \
+  -x "{{ gkr_gdb_script_path }}" \
+  --args /usr/bin/gnome-keyring-daemon --start --foreground --components=secrets
