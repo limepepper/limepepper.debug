@@ -25,9 +25,9 @@
           #  |___/
           ## Running LimePepper Gkr debug role
 
-    - name: Load distro specific vars
-      tags: always
-      ansible.builtin.include_tasks: vars.yml
+#    - name: Load distro specific vars
+#      tags: always
+#      ansible.builtin.include_tasks: vars.yml
 
     - name: Install any relevant packages
       tags: always
@@ -36,10 +36,10 @@
     - name: Configure this role
       tags: always
       ansible.builtin.include_tasks: 2_configure/main.yml
-#
-#    - name: Start the service
-#      tags: always
-#      ansible.builtin.include_tasks: 3_service/main.yml
+
+    - name: Start the service
+      tags: always
+      ansible.builtin.include_tasks: 3_service/main.yml
 
     - name: Flush handlers
       ansible.builtin.meta: flush_handlers
