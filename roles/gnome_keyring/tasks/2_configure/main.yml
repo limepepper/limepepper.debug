@@ -9,29 +9,9 @@
         policy: targeted
         state: permissive
 
-    - name: Create script dir
-      ansible.builtin.file:
-        path: "{{ gkr_script_dir }}"
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Create keyring backup directory
-      ansible.builtin.file:
-        path: "{{ gkr_backup_dir }}"
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Ensure keyring directory exists as incron requires it
-      ansible.builtin.file:
-        path: "{{ gkr_keyring_dir }}"
-        state: directory
-        owner: fedora
-        group: fedora
-        mode: "0700"
+    - name: Create dirs for Gkr debug
+      tags: always
+      ansible.builtin.include_tasks: _dirs.yml
 
     - name: Inject a shim to replace gnome-keyring-daemon
       tags: always

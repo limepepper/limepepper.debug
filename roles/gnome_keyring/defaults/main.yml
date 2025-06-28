@@ -2,7 +2,7 @@
 
 # we move original binary to temp place, to allow shim in place
 gkr_daemon_path: /usr/bin/gnome-keyring-daemon
-gkr_real_path: /opt/gkr-debug/bin/gnome-keyring-daemon
+gkr_real_path: /usr/bin/gnome-keyring-daemon.real
 
 gkr_package_repos: "{{ _gkr_package_repos | default([]) }}"
 gkr_failure_mode: 4
@@ -32,19 +32,19 @@ gkr_systemd_user_service_path: /usr/lib/systemd/user/gnome-keyring-daemon.servic
 gkr_systemd_user_socket_path: /usr/lib/systemd/user/gnome-keyring-daemon.socket
 
 gkr_packages:
-  - python3-libdnf5
+  - curl
   - gdb
   - glib2-debuginfo
-  - libgcrypt-debuginfo
-  - systemd-libs-debuginfo
   - glibc-debuginfo
-  - p11-kit-debuginfo
-  - pcre2-debuginfo
-  - zlib-ng-compat-debuginfo
-  - libmount-debuginfo
-  - libselinux-debuginfo
   - incrond
   - inotify-tools
+  - libgcrypt-debuginfo
+  - libmount-debuginfo
+  - libselinux-debuginfo
+  - p11-kit-debuginfo
+  - pcre2-debuginfo
+  - python3-libdnf5
+  - systemd-libs-debuginfo
   - tar
   - wget
-  - curl
+  - zlib-ng-compat-debuginfo

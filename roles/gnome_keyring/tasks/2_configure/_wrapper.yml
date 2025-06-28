@@ -4,7 +4,7 @@
   tags: gkr-config-wrapper
   block:
 
-    - name: Stat the current gnome-keyring-daemon
+    - name: Get the stat of the gnome-keyring-daemon file
       ansible.builtin.stat:
         path: "{{ gkr_daemon_path }}"
       register: gkr_stat
