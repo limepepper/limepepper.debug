@@ -1,16 +1,38 @@
 ---
-
 - name: Configure Auditd Gkr debug
   tags: gkr-config-auditd
   block:
-
     - name: Install auditd rule for gnome-keyring-daemon
-      ansible.builtin.template:
-        src: gkr/auditd/gnome-keyring.rules.j2
-        dest: "{{ gkr_auditd_rules_path }}"
-        owner: root
-        group: root
-        mode: "0644"
-      notify:
-        - Reload auditd rules
-        
+      ansible.builtin.include_role:
+        name: limepepper.monitoring.auditd
+      vars:
+        auditd_rules_execve:
+          - path: /usr/bin/gdb
+          - path: /usr/bin/screen
+          - path: "{{ gkr_real_path }}"
+            filter_keys:
+              - gkr-d
+              - gkr-d-real-execve
+        auditd_rules_filepaths:
+          - path: /home/fedora/.local/share/keyrings/login.keyring
+            filter_keys:
+              - gkr-d
+              - gkr-d-login-keyring
+          - path: "{{ gkr_daemon_path }}"
+            filter_keys:
+              - gkr-d
+              - gkr-d-shim
+          - path: "{{ gkr_real_path }}"
+            filter_keys:
+              - gkr-d
+              - gkr-d-real
+
+        auditd_rules_exe_syscalls:
+          - exe: "{{ gkr_real_path }}"
+            syscalls:
+              - execve
+              - read
+              - write
+            filter_keys:
+              - gkr-d
+              - gkr-d-syscalls
