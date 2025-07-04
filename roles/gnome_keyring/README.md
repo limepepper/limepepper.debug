@@ -15,6 +15,40 @@ be used to trace the behaviour of arbitrary applications without modifying or
 having to completely rebuild an instrumented test environment with lots of 
 custom systemd unit files and startup scripts.
 
+## Incident summary 
+
+Some time on the 21/May I reboot my desktop due to package updates, upon opening
+(I believe) vscode, I was presented with a "The login keyring did not get unlocked when you logged into your computer" dialog, requesting a password. When I 
+entered my login password, it was not accepted. I tried a bunch of different 
+passwords, and then checked the `login.keyring` file, which had been recently
+updated.
+
+Upon consulting my backups, I found that no recent backup could be unlocked 
+with my login password. I proceeded through the historical backups, until I found
+one that could be unlocked which was from the 11/May some 10 days before. This
+was odd, as I had been using vscode and other applications which use libsecrets
+frequently in that period.
+
+Initially I suspected some memory problem related to the unusual and unique log entry: "couldn't allocate secure memory".
+
+On the 24/May I had claude generate a test script to try and decrypt the [locked
+keyring](https://github.com/tolland/gnome-keyring/blob/806e52e28eae975cf20f591a5839638d5e9c6de3/pkcs11/secret-store/test-login-keyring-passwords.c#L86), this succeeded and provided
+evidence that the problem was probably deterministic, as pulling a random piece
+of memory would likely produce a nonsensical hex value which could not be 
+decrypted.
+
+A while later, after using gdb to trace something in another project, it occurred
+to me to set up something to trace gkr and leave it running, to see if I could
+catch and log bad password updates for future occurrences.
+
+I investigated various tools such as auditd, bpftrace, incrond, gdb, lldb, 
+dbus-monitor, and LD_PRELOAD modules to instrument processes under these
+circumstances. It wsa a lot of fun.
+
+Ultimately, the solution was found because it was obvious from diving into the 
+code that logs from the incident represented a specific type of interaction with
+gkr that wasn't present within normal gkr operations.
+
 ## Background
 
 The gnome-keyring package provides a [secrets service](https://www.freedesktop.org/wiki/Specifications/secret-storage-spec/) implementation which is 
@@ -167,3 +201,11 @@ caused that inability to allocate secure memory, as I don't see any correspondin
 OOM kills, but I would like to be able to correlate these issues in future.
 
 
+## Links
+
+- My notes on the incident on the redhat bugzilla on a similar report:
+<https://bugzilla.redhat.com/show_bug.cgi?id=2356002>
+- The line of code that probably caused the issue:
+<https://src.fedoraproject.org/rpms/firefox/blob/rawhide/f/run-wayland-compositor#_23>
+- bug report raised on mozilla bugzilla, though I think now it was probably the
+fedora package rebuilding that caused the reset <https://bugzilla.mozilla.org/show_bug.cgi?id=1975634>
