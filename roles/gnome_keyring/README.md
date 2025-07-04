@@ -5,6 +5,16 @@ changed, and no longer matched my login password. I had not changed either
 explicitly, nor had I updated any packages that might trigger this behaviour,
 so I was interested to find out exactly what gnome-keyring was doing.
 
+Normally, one could run a problem application under strace or gdb, and inspect
+what it is doing. In the case of gnome-keyring, the application is run under the control of system components such as pam and dbus, and its behaviour is tied
+to various lifecycle and specific input file descriptors (password given as stdin
+to daemon) which makes simple tracing difficult.
+
+The more general motivation, is that I want to have available a toolset that can
+be used to trace the behaviour of arbitrary applications without modifying or
+having to completely rebuild an instrumented test environment with lots of 
+custom systemd unit files and startup scripts.
+
 ## Background
 
 The gnome-keyring package provides a [secrets service](https://www.freedesktop.org/wiki/Specifications/secret-storage-spec/) implementation which is 
@@ -82,7 +92,7 @@ The `login.keyring` is encrypted with a master password, which is usually the sa
 as the user's login password. gkr attempts to keep this master password in sync
 with the user password in several ways. If the gkr-pam module can find a daemon
 on the control socket, it can change or set the password from pam. However, if
-not it falls back to spwaning a gkr instance, in which it caches the login 
+not it falls back to spawning a gkr instance, in which it caches the login 
 password, which is later used to update the `login.keyring` master password.
 This process is a bit odd, and can lead to problems.
 
