@@ -86,13 +86,6 @@ not it falls back to spwaning a gkr instance, in which it caches the login
 password, which is later used to update the `login.keyring` master password.
 This process is a bit odd, and can lead to problems.
 
-Key points from this log:
-
-- there are 2 instances running. The second replaces the first, which might
- be an factor for the issue.
-- the "couldn't allocate" log is related to secure memory allocation, but not directly related to the login keyring. However searching the logs, I don't find any other issues related to secure memory allocation. So they are either related, or have a common cause, or it's a very unlikely coincidence.
-
-
 ## Bug summary
 
 it turns out that the problem was caused by running a test suite in another app
@@ -145,4 +138,22 @@ May 10 13:51:06 desktop /usr/libexec/gdm-x-session[2975]: (--) NVIDIA(GPU-0): Id
 ...
 May 10 13:51:06 desktop /usr/libexec/gdm-x-session[2975]: (--) NVIDIA(GPU-0):
 ```
+
+## Red herring
+
+The log includes the following
+
+```
+May 10 13:51:14 desktop gnome-keyring-daemon[209976]: couldn't allocate secure memory to keep passwords and or keys from being written to the disk
+```
+
+gkr uses some secure memory functions which seem to try to prevent memory being
+used that can be paged out, or otherwise observed externally. The log above 
+indicates that gkr was unable to allocate a block of secure memory and fell back
+to malloc, or some default method. This log was a unique entry in several months
+of journal logs, so I assumed it was important and substantial. However, it seems
+that the cause of my behaviour was quite simple and unrelated. I don't know what
+caused that inability to allocate secure memory, as I don't see any corresponding
+OOM kills, but I would like to be able to correlate these issues in future.
+
 
