@@ -3,24 +3,3 @@
 - name: Systemd daemon-reload
   ansible.builtin.systemd:
     daemon_reload: true
-
-- name: Restart incrond
-  limepepper.system.service2:
-    name: incrond
-    state: restarted
-
-- name: Reload auditd rules
-  ansible.builtin.command: augenrules --load
-
-- name: Restart gdb-fork-tracer
-  limepepper.system.service2:
-    name: gdb-fork-tracer
-    state: restarted
-  when:
-    - not ansible_check_mode
-    - >
-      not (
-        bpftracer_service_started is defined
-      and
-        bpftracer_service_started.changed
-      )

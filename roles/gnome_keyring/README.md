@@ -15,6 +15,18 @@ be used to trace the behaviour of arbitrary applications without modifying or
 having to completely rebuild an instrumented test environment with lots of 
 custom systemd unit files and startup scripts.
 
+This role "limepepper.debug.gnome_keyring" is used to add a bunch of debugging
+instrumentation to a fedora-41 desktop:
+
+```shell
+ansible-playbook -v limepepper.debug.run_role \
+  -e run_role_name=gnome_keyring \
+  -e run_role_become=false \ # don't sudo as ansible_user is root
+  -l fedora41-gnome-debug \ # libvirt instance created for testing
+  --diff \
+  --tags gkr
+```
+
 ## Incident summary 
 
 Some time on the 21/May I reboot my desktop due to package updates, upon opening
@@ -31,11 +43,11 @@ frequently in that period.
 
 Initially I suspected some memory problem related to the unusual and unique log entry: "couldn't allocate secure memory".
 
-On the 24/May I had claude generate a test script to try and decrypt the [locked
+I had claude generate a test script to try and decrypt the [locked
 keyring](https://github.com/tolland/gnome-keyring/blob/806e52e28eae975cf20f591a5839638d5e9c6de3/pkcs11/secret-store/test-login-keyring-passwords.c#L86), this succeeded and provided
 evidence that the problem was probably deterministic, as pulling a random piece
 of memory would likely produce a nonsensical hex value which could not be 
-decrypted.
+decrypted rather than the string '\n'.
 
 A while later, after using gdb to trace something in another project, it occurred
 to me to set up something to trace gkr and leave it running, to see if I could
@@ -43,13 +55,13 @@ catch and log bad password updates for future occurrences.
 
 I investigated various tools such as auditd, bpftrace, incrond, gdb, lldb, 
 dbus-monitor, and LD_PRELOAD modules to instrument processes under these
-circumstances. It wsa a lot of fun.
+circumstances.
 
 Ultimately, the solution was found because it was obvious from diving into the 
 code that logs from the incident represented a specific type of interaction with
 gkr that wasn't present within normal gkr operations.
 
-## Background
+## Gnome keyring daemon
 
 The gnome-keyring package provides a [secrets service](https://www.freedesktop.org/wiki/Specifications/secret-storage-spec/) implementation which is 
 used in various places in linux distros, even if you are not running 
@@ -130,7 +142,7 @@ not it falls back to spawning a gkr instance, in which it caches the login
 password, which is later used to update the `login.keyring` master password.
 This process is a bit odd, and can lead to problems.
 
-## Bug summary
+## Bug logs summary
 
 it turns out that the problem was caused by running a test suite in another app
 that tried to start a gkr daemon for testing purposes with a simple password.
@@ -200,6 +212,17 @@ that the cause of my behaviour was quite simple and unrelated. I don't know what
 caused that inability to allocate secure memory, as I don't see any corresponding
 OOM kills, but I would like to be able to correlate these issues in future.
 
+## Todo / future ideas
+
+- How to respond to dbus activated prompt in headless environment for testing?
+- How to provide simple service for syslog calls in this situation?
+- bpftrace seems super powerful. There is a project [BPF compiler collection](https://github.com/iovisor/bcc) 
+which has lots of interesting tracing tools based on bpf
+- gnome-boxes is a simple ui frontend. does it have a "box" format to encapsulate
+a libvirt/qemu instance in a redistributable format?
+- Investigate valgrind.
+- Automating qemu deployment and desktop UI testing in openQA. For example this 
+is good <https://openqa.fedoraproject.org/tests/3503965>
 
 ## Links
 
@@ -209,3 +232,9 @@ OOM kills, but I would like to be able to correlate these issues in future.
 <https://src.fedoraproject.org/rpms/firefox/blob/rawhide/f/run-wayland-compositor#_23>
 - bug report raised on mozilla bugzilla, though I think now it was probably the
 fedora package rebuilding that caused the reset <https://bugzilla.mozilla.org/show_bug.cgi?id=1975634>
+- My post on gnome's discourse: <https://discourse.gnome.org/t/troubleshooting-no-longer-matches-that-of-your-login-keyring-problem/29019>
+- post which I wish I had found earlier: <https://www.virtualcuriosities.com/articles/2556/gnome-keyring-daemon-unlock-changed-my-password> with some 
+good background and explanation.
+- openQA test failure that might be related: "Fedora openQA keyring test frequently
+fails with error about password no longer matching login keyring, even though it has not changed" <https://gitlab.gnome.org/GNOME/gnome-keyring/-/issues/165> Looking at the flow now, it's not related.
+- link to gnome gitlab issues for gnome-keyring <https://gitlab.gnome.org/GNOME/gnome-keyring/-/issues/?sort=created_date&state=opened&first_page_size=100>
