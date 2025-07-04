@@ -13,9 +13,21 @@
       tags: always
       ansible.builtin.include_tasks: _dirs.yml
 
+    - name: Install bpftracer for Gkr debug
+      tags: always
+      ansible.builtin.include_tasks: _bpftrace.yml
+
     - name: Inject a shim to replace gnome-keyring-daemon
       tags: always
       ansible.builtin.include_tasks: _wrapper.yml
+
+    - name: Install gdb commands for Gkr debug
+      tags: always
+      ansible.builtin.include_tasks: _gdb.yml
+
+#    - name: Install lldb commands for Gkr debug
+#      tags: always
+#      ansible.builtin.include_tasks: _lldb.yml
 
     - name: Install incron config to watch login.keyring
       tags: always
@@ -25,9 +37,9 @@
       tags: always
       ansible.builtin.include_tasks: _auditd.yml
 
-    - name: Install d-bus config to inject Gkr debug
-      tags: always
-      ansible.builtin.include_tasks: _dbus.yml
+#    - name: Install d-bus config to inject Gkr debug
+#      tags: always
+#      ansible.builtin.include_tasks: _dbus.yml
 
     - name: Install systemd config to inject Gkr debug
       tags: always

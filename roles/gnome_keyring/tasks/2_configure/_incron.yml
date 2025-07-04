@@ -4,6 +4,10 @@
   tags: gkr-config-incrond
   block:
 
+    - name: Install incrond and start service
+      ansible.builtin.include_role:
+        name: limepepper.system.incrond
+
     - name: Install keyring monitoring script
       ansible.builtin.template:
         src: gkr/incron/gkr-keyring-monitor.sh.j2
@@ -20,6 +24,22 @@
         group: root
         mode: "0755"
 
+    - name: Copy keyring dump tool
+      ansible.builtin.copy:
+        src: gkr/dump-keyring0-format
+        dest: "{{ gkr_keyring_dump_path }}"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install dump keyring test script
+      ansible.builtin.copy:
+        src: test-dump-keyring.sh
+        dest: "{{ gkr_dump_test_path }}"
+        owner: root
+        group: root
+        mode: "0755"
+
     - name: Install incrond configuration
       ansible.builtin.template:
         src: gkr/incron/incrond.conf.j2
@@ -28,4 +48,4 @@
         group: root
         mode: "0644"
       notify:
-        - Restart incrond
+        - Restart incron

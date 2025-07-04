@@ -1,0 +1,28 @@
+---
+
+- name: Create dirs for Gkr debug
+  tags: gkr-config-dirs
+  block:
+    - name: Create script dir
+      ansible.builtin.file:
+        path: "{{ gkr_script_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create keyring backup directory
+      ansible.builtin.file:
+        path: "{{ gkr_backup_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Ensure keyring directory exists as incron requires it
+      ansible.builtin.file:
+        path: "{{ gkr_keyring_dir }}"
+        state: directory
+        owner: fedora
+        group: fedora
+        mode: "0700"

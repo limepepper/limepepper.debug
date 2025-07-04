@@ -1,0 +1,17 @@
+settings set target.process.follow-fork-mode child
+settings set target.process.stop-on-exec true
+settings set target.input-path /dev/null
+
+breakpoint set --file gkd-main.c --name main
+
+# Add commands to the main() breakpoint
+breakpoint command add
+expr printf("📍 breaking in main()\n")
+expr argc
+expr (char *)argv[0]
+expr (char *)argv[1]
+expr (char *)argv[2]
+expr (char *)argv[3]
+continue
+
+process launch -- --login --daemonize

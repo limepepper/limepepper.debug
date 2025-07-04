@@ -1,0 +1,30 @@
+---
+
+- name: Configure gdb command files for Gkr debug
+  tags: gkr-config-gdb
+  block:
+
+    - name: Install GDB script templates
+      ansible.builtin.template:
+        src: gkr/gdb/{{ gdb_item }}.gdb.j2
+        dest: "{{ gkr_gdb_script_dir }}/{{ gdb_item }}.gdb"
+        owner: root
+        group: root
+        mode: "0644"
+      loop_control:
+        loop_var: gdb_item
+      loop:
+        - gkr-debug
+
+    - name: Install static GDB script files
+      ansible.builtin.copy:
+        src: gkr/gdb/{{ gdb_item }}.gdb
+        dest: "{{ gkr_gdb_script_dir }}/{{ gdb_item }}.gdb"
+        owner: root
+        group: root
+        mode: "0644"
+      loop_control:
+        loop_var: gdb_item
+      loop:
+        - breakpoints
+        - catchpoints

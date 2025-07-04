@@ -1,0 +1,50 @@
+
+
+# If that doesn't work, try with file context (you'll need to know the source file)
+# break filename.c:fix_login_keyring_if_unlock_failed
+
+# Original breakpoint attempt
+break gkm-wrap-prompt.c:fix_login_keyring_if_unlock_failed
+    print password
+    backtrace
+    continue
+end
+
+break gkm-wrap-prompt.c:fix_login_keyring_if_unlock_failed
+    backtrace
+    continue
+end
+
+break /usr/src/debug/gnome-keyring-46.2-2.fc41.x86_64/pkcs11/wrap-layer/gkm-wrap-prompt.c:gkm_wrap_prompt_done_credential
+    backtrace
+    continue
+end
+
+break /usr/src/debug/gnome-keyring-46.2-2.fc41.x86_64/pkcs11/wrap-layer/gkm-wrap-prompt.c:auto_unlock_remove_object
+    backtrace
+    continue
+end
+
+break /usr/src/debug/gnome-keyring-46.2-2.fc41.x86_64/pkcs11/wrap-layer/gkm-wrap-prompt.c:gkm_wrap_prompt_for_credential
+    print module
+    continue
+end
+
+break /usr/src/debug/gnome-keyring-46.2-2.fc41.x86_64/pkcs11/wrap-layer/gkm-wrap-prompt.c:gkm_wrap_prompt_done_credential
+    print module
+    continue
+end
+
+break gkm_wrap_prompt_done_credential
+    print module
+    continue
+end
+
+
+tbreak sec_alloc
+commands
+silent
+return (void*)NULL
+end
+cont
+

@@ -6,9 +6,11 @@ set -eu ; set -o pipefail
 
 KEYRING_FILE="{{ gkr_keyring_dir }}/login.keyring"
 BACKUP_DIR="{{ gkr_backup_dir }}"
-LOG_FILE="/opt/gkr-debug/keyring-monitor.log"
+LOG_FILE="{{ gkr_keyring_monitor_log }}"
+DEBUG_LOG_FILE="{{ gkr_keyring_monitor_debug_log }}"
 
 # Incrond passes: $1=path, $2=filename, $3=event
+# shellcheck disable=SC2034
 WATCHED_PATH="${1:-}"
 FILENAME="${2:-}"
 EVENT="${3:-}"
@@ -22,27 +24,33 @@ log_message() {
     echo "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ") - ${message}" >> "${LOG_FILE}"
 }
 
+# Function to log debug messages with ISO timestamp
+debug_log_message() {
+    local message="$1"
+    echo "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ") - ${message}" >> "${DEBUG_LOG_FILE}"
+}
+
 # Function to create timestamped backup
 create_backup() {
     local event="$1"
     local timestamp=$(date -u +"%Y%m%d_%H%M%S_%3N")
     local checksum=""
-    
+
     if [[ -f "${KEYRING_FILE}" ]]; then
         # Calculate SHA256 checksum of the file
         checksum=$(sha256sum "${KEYRING_FILE}" | cut -d' ' -f1 | head -c 8)
         local backup_file="${BACKUP_DIR}/login.keyring.${timestamp}.${checksum}.${event}"
-        
+
         cp "${KEYRING_FILE}" "${backup_file}"
-        log_message "Created backup: ${backup_file} (event: ${event}, checksum: ${checksum})"
+        debug_log_message "Created backup: ${backup_file} (event: ${event}, checksum: ${checksum})"
     else
-        log_message "File ${KEYRING_FILE} does not exist, cannot create backup (event: ${event})"
+        debug_log_message "File ${KEYRING_FILE} does not exist, cannot create backup (event: ${event})"
     fi
 }
 
 # Only process events for the login.keyring file
 if [[ "${FILENAME}" != "login.keyring" ]]; then
-    log_message "Ignoring event for file: ${FILENAME} (event: ${EVENT})"
+    debug_log_message "Ignoring event for file: ${FILENAME} (event: ${EVENT})"
     exit 0
 fi
 
@@ -55,9 +63,76 @@ case "${EVENT}" in
         create_backup "created"
         ;;
     "IN_DELETE"|"IN_MOVED_FROM")
-        log_message "File ${KEYRING_FILE} was deleted or moved (event: ${EVENT})"
+        debug_log_message "File ${KEYRING_FILE} was deleted or moved (event: ${EVENT})"
         ;;
     *)
-        log_message "Unknown event: ${EVENT} for file ${FILENAME}"
+        debug_log_message "Unknown event: ${EVENT} for file ${FILENAME}"
+        exit 0
         ;;
-esac 
+esac
+
+# If we are here, we have created a backup, and the event represents a change that we are interested in.
+
+# Function to dump keyring with password and handle result
+dump_keyring_with_password() {
+    local password="{{ gkr_login_password }}"
+    local output_file="/tmp/dump-keyring-output-$$.txt"
+    local error_file="/tmp/dump-keyring-error-$$.txt"
+    local exit_code=0
+
+    # Create expect script to handle the password prompt
+    local expect_script="/tmp/dump-keyring-expect-$$.exp"
+    cat > "${expect_script}" << EOF
+#!/usr/bin/expect -f
+set timeout 30
+spawn /opt/gkr-debug/bin/dump-keyring0-format "${KEYRING_FILE}"
+expect "Password: "
+send "${password}\r"
+expect eof
+EOF
+
+    # Run the expect script and capture output
+    expect -f "${expect_script}" > "${output_file}" 2> "${error_file}" || exit_code=$?
+
+    # Check for success indicators in the output
+    local success_indicators_found=0
+    if [[ -s "${output_file}" ]]; then
+        if grep -q "display-name=test-dump-password" "${output_file}" && grep -q "secret=hello-world" "${output_file}"; then
+            success_indicators_found=1
+        fi
+    fi
+
+    if [[ ${success_indicators_found} -eq 1 ]]; then
+        log_message "SUCCESS: Keyring decryption successful"
+        # Log the first few lines of output for debugging
+        debug_log_message "Keyring dump output (first 10 lines):"
+        head -10 "${output_file}" | while read -r line; do
+            debug_log_message "  ${line}"
+        done
+    else
+        log_message "FAILED: Keyring decryption failed"
+        # Log error output to debug log
+        if [[ -s "${error_file}" ]]; then
+            debug_log_message "Error output:"
+            while read -r line; do
+                debug_log_message "  ${line}"
+            done < "${error_file}"
+        fi
+        # Log stdout output to debug log
+        if [[ -s "${output_file}" ]]; then
+            debug_log_message "Stdout output:"
+            while read -r line; do
+                debug_log_message "  ${line}"
+            done < "${output_file}"
+        fi
+        exit 99
+    fi
+
+    # Clean up temporary files
+    rm -f "${output_file}" "${error_file}" "${expect_script}"
+}
+
+# Attempt to dump the keyring
+dump_keyring_with_password
+
+

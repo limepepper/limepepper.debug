@@ -1,8 +1,13 @@
 #!/bin/bash
 
-set -eu -o pipefail
+pid=${1:-}
 
-# shellcheck disable=SC2154
-exec gdb --batch-silent \
-  -x "{{ gkr_gdb_script_path }}" \
-  --args /usr/bin/gnome-keyring-daemon --start --foreground --components=secrets
+screen -L -d -m -Logfile  "${HOME}/.local/log/screen.$pid.log"  \
+     /usr/bin/gdb \
+    --silent \
+    -p $pid \
+    -ex "set logging enabled off" \
+    -ex "set logging redirect off" \
+    -ex "set logging file ${HOME}/.local/log/gdb.log" \
+    -ex "set logging enabled on" \
+    -x "{{ gkr_gdb_script_path }}"

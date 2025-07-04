@@ -1,37 +1,4 @@
 #!/bin/bash
 
-mkdir -p "${HOME}/.local/log"
-echo "keyring-wrapper: PID=$$ called with: $@" >> "${HOME}/.local/log/gkr-wrapper.log"
-
-# If gdb fails to load the script and exits, it unhelpfully exits with 0
-# and no useful error message is printed to the journal
-# so we need to check if the script can be parsed correctly
-# Try running gdb with a simple noop command to test if the script is valid
-echo "=== GDB OUTPUT START ===" > "${HOME}/.local/log/gdb.test.$$.tmp" 2>&1
-/usr/bin/gdb \
-  --batch \
-  --return-child-result \
-  -x "/opt/gkr-debug/gkr-debug.gdb" \
-  --args /usr/bin/echo "$@" >> "${HOME}/.local/log/gdb.test.$$.tmp" 2>&1
-gdb_exit_code=$?
-echo "=== GDB OUTPUT END ===" >> "${HOME}/.local/log/gdb.test.$$.tmp" 2>&1
-echo "GDB exit code: $gdb_exit_code" >> "${HOME}/.local/log/gdb.test.$$.tmp" 2>&1
-
-# If GDB failed, append the test output to the main log
-if [ $gdb_exit_code -ne 0 ]; then
-    echo "GDB test failed, appending output to main log:" >> "${HOME}/.local/log/gkr-wrapper.log"
-    cat "${HOME}/.local/log/gdb.test.$$.tmp" >> "${HOME}/.local/log/gkr-wrapper.log"
-fi
-
-# Clean up temp file
-rm -f "${HOME}/.local/log/gdb.test.$$.tmp"
-
-exec /usr/bin/gdb \
-  --batch \
-  --return-child-result \
-  -ex "set logging file ${HOME}/.local/log/gdb.run.$$.txt" \
-  -ex "set pagination off" \
-  -ex "set breakpoint pending on" \
-  -ex "set debuginfod enabled on" \
-  -x "/opt/gkr-debug/gkr-debug.gdb" \
-  --args {{ gkr_real_path }} "$@"
+exec env LD_PRELOAD=/opt/gkr-debug/preload_stop.so \
+  {{ gkr_real_path }} "$@"

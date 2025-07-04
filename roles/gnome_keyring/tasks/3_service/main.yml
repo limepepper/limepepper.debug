@@ -1,9 +1,9 @@
 ---
+
 - name: Start services required for gkr debug
   tags: gkr-service
   block:
-    - name: Ensure incrond service is enabled and running
-      limepepper.system.service2:
-        name: incrond
-        state: started
-        enabled: true
+
+    - name: Ensure services are enabled and running
+      ansible.builtin.debug:
+        msg: No services for gkr debug

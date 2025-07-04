@@ -1,0 +1,17 @@
+---
+
+- name: Configure lldb command files for Gkr debug
+  tags: gkr-config-lldb
+  block:
+
+    - name: Install LLDB script
+      ansible.builtin.template:
+        src: gkr/lldb/{{ lldb_item }}.lldb.j2
+        dest: "{{ gkr_lldm_script_dir }}/{{ lldb_item }}.lldb"
+        owner: root
+        group: root
+        mode: "0644"
+      loop_control:
+        loop_var: lldb_item
+      loop:
+        - main

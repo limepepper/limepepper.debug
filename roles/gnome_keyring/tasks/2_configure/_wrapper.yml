@@ -11,9 +11,10 @@
 
     - name: Show the stat for the target binary
       ansible.builtin.debug:
+        verbosity: 3
         var: gkr_stat
 
-    - name: Copy the original gnome-keyring-daemon to the debug directory
+    - name: Copy out the original gnome-keyring-daemon
       ansible.builtin.copy:
         remote_src: true
         src: "{{ gkr_daemon_path }}"
@@ -34,17 +35,7 @@
         group: root
         mode: "0755"
 
-    - name: Install GDB script
-      ansible.builtin.template:
-        src: gkr/gdb/gkr-debug.gdb.j2
-        dest: "{{ gkr_gdb_script_path }}"
-        owner: root
-        group: root
-        mode: "0644"
-
-    # Originally this was a wrapper script, but the pam hard codes
-    # the path, so the binary itself is shimmed instead.
-    - name: Install debug config
+    - name: Install gdb caller script
       ansible.builtin.template:
         src: gkr/wrapper/gkr-debug-wrapper.sh.j2
         dest: "{{ gkr_debug_wrapper_path }}"

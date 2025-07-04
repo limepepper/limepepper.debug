@@ -56,4 +56,67 @@ fi
 BACKUP_COUNT=$(find /opt/gkr-debug/keyring-backups -name "*.modified" 2>/dev/null | wc -l)
 echo "Backup files created: ${BACKUP_COUNT}"
 
-echo "Test completed" 
+# Test the dump-keyring0-format utility
+echo "Testing dump-keyring0-format utility..."
+
+# Test with correct password
+echo "Testing with correct password..."
+cat > /tmp/test-expect-correct.exp << EOF
+#!/usr/bin/expect -f
+set timeout 30
+spawn /opt/gkr-debug/bin/dump-keyring0-format "${KEYRING_FILE}"
+expect "Password: "
+send "fedora\r"
+expect eof
+EOF
+
+expect -f /tmp/test-expect-correct.exp > /tmp/test-dump-correct.txt 2> /tmp/test-dump-correct.err
+exit_code=$?
+
+# Check for success indicators in the output
+if [[ -s /tmp/test-dump-correct.txt ]] && grep -q "display-name=test-dump-password" /tmp/test-dump-correct.txt && grep -q "secret=hello-world" /tmp/test-dump-correct.txt; then
+    echo "SUCCESS: dump-keyring0-format worked with correct password"
+    echo "Output preview:"
+    head -5 /tmp/test-dump-correct.txt
+else
+    echo "FAILED: dump-keyring0-format failed with correct password"
+    echo "Exit code: ${exit_code}"
+    echo "Error output:"
+    cat /tmp/test-dump-correct.err
+    echo "Stdout output:"
+    cat /tmp/test-dump-correct.txt
+fi
+
+# Test with wrong password
+echo "Testing with wrong password..."
+cat > /tmp/test-expect-wrong.exp << EOF
+#!/usr/bin/expect -f
+set timeout 30
+spawn /opt/gkr-debug/bin/dump-keyring0-format "${KEYRING_FILE}"
+expect "Password: "
+send "wrong-password\r"
+expect eof
+EOF
+
+expect -f /tmp/test-expect-wrong.exp > /tmp/test-dump-wrong.txt 2> /tmp/test-dump-wrong.err
+exit_code=$?
+
+# Check for success indicators in the output
+if [[ -s /tmp/test-dump-wrong.txt ]] && grep -q "display-name=test-dump-password" /tmp/test-dump-wrong.txt && grep -q "secret=hello-world" /tmp/test-dump-wrong.txt; then
+    echo "WARNING: dump-keyring0-format succeeded with wrong password (unexpected)"
+    echo "Output preview:"
+    head -5 /tmp/test-dump-wrong.txt
+else
+    echo "EXPECTED: dump-keyring0-format failed with wrong password"
+    echo "Exit code: ${exit_code}"
+    echo "Error output:"
+    cat /tmp/test-dump-wrong.err
+    echo "Stdout output:"
+    cat /tmp/test-dump-wrong.txt
+fi
+
+# Clean up test files
+rm -f /tmp/test-dump-correct.txt /tmp/test-dump-correct.err /tmp/test-dump-wrong.txt /tmp/test-dump-wrong.err
+rm -f /tmp/test-expect-correct.exp /tmp/test-expect-wrong.exp
+
+echo "Test completed"

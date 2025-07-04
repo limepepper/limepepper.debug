@@ -1,0 +1,15 @@
+---
+
+- name: Configure bpftracer Gkr debug
+  tags: gkr-config-bpftrace
+  block:
+    - name: Install bpftrace service to respond to SIGSTOP events
+      ansible.builtin.include_role:
+        name: limepepper.monitoring.bpftrace
+      vars:
+        bpftracer_sig_handler:
+          - description: "SIGSTOP handler"
+            signal: SIGSTOP
+            signum: 19
+            comm: gnome-keyring-d
+            script: "{{ gkr_debug_wrapper_path }}"

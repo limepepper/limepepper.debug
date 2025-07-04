@@ -29,8 +29,8 @@ ansible-playbook -v limepepper.debug.run_role \
 
 ## Incident summary 
 
-Some time on the 21/May I reboot my desktop due to package updates, upon opening
-(I believe) vscode, I was presented with a "The login keyring did not get unlocked when you logged into your computer" dialog, requesting a password. When I 
+At the time of the incident, I had rebooted my desktop due to package updates, 
+upon opening (I believe) vscode, I was presented with a "The login keyring did not get unlocked when you logged into your computer" dialog, requesting a password. When I 
 entered my login password, it was not accepted. I tried a bunch of different 
 passwords, and then checked the `login.keyring` file, which had been recently
 updated.

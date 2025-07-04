@@ -1,12 +1,32 @@
 ---
 
+gkr_packages:
+  - curl
+  - expect
+  - gdb
+  - glib2-debuginfo
+  - glibc-debuginfo
+  - libgcrypt-debuginfo
+  - libmount-debuginfo
+  - libselinux-debuginfo
+  - p11-kit-debuginfo
+  - pcre2-debuginfo
+  - python3-libdnf5
+  - systemd-libs-debuginfo
+  - tar
+  - wget
+  - zlib-ng-compat-debuginfo
+
 # we move original binary to temp place, to allow shim in place
 gkr_daemon_path: /usr/bin/gnome-keyring-daemon
 gkr_real_path: /usr/bin/gnome-keyring-daemon.real
 
 gkr_package_repos: "{{ _gkr_package_repos | default([]) }}"
 gkr_failure_mode: 4
-gkr_gdb_script_path: /opt/gkr-debug/gkr-debug.gdb
+
+gkr_gdb_script_dir: /opt/gkr-debug
+gkr_gdb_script_path: "{{ gkr_gdb_script_dir }}/gkr-debug.gdb"
+gkr_lldm_script_dir: /opt/gkr-debug
 
 # Directory paths
 gkr_script_dir: /opt/gkr-debug/bin
@@ -14,9 +34,13 @@ gkr_backup_dir: /opt/gkr-debug/keyring-backups
 gkr_keyring_dir: /home/fedora/.local/share/keyrings
 
 # Script paths
-gkr_debug_wrapper_path: /opt/gkr-debug/bin/gkr-debug-wrapper.sh
+gkr_debug_wrapper_path: /opt/gkr-debug/bpf-call-gdb.sh
 gkr_keyring_monitor_path: /opt/gkr-debug/bin/gkr-keyring-monitor.sh
 gkr_test_monitor_path: /opt/gkr-debug/bin/test-keyring-monitor.sh
+
+# Log file paths
+gkr_keyring_monitor_log: /opt/gkr-debug/keyring-monitor.log
+gkr_keyring_monitor_debug_log: /opt/gkr-debug/keyring-monitor-debug.log
 
 # Configuration file paths
 gkr_incrond_config_path: /etc/incron.d/gkr-keyring-monitor
@@ -31,20 +55,9 @@ gkr_freedesktop_portal_secret_service_path: /usr/share/dbus-1/services/org.freed
 gkr_systemd_user_service_path: /usr/lib/systemd/user/gnome-keyring-daemon.service
 gkr_systemd_user_socket_path: /usr/lib/systemd/user/gnome-keyring-daemon.socket
 
-gkr_packages:
-  - curl
-  - gdb
-  - glib2-debuginfo
-  - glibc-debuginfo
-  - incrond
-  - inotify-tools
-  - libgcrypt-debuginfo
-  - libmount-debuginfo
-  - libselinux-debuginfo
-  - p11-kit-debuginfo
-  - pcre2-debuginfo
-  - python3-libdnf5
-  - systemd-libs-debuginfo
-  - tar
-  - wget
-  - zlib-ng-compat-debuginfo
+gkr_bpftrace_script_path: /opt/gkr-debug/bfptrace
+gkr_keyring_dump_path: /opt/gkr-debug/bin/dump-keyring0-format
+gkr_dump_test_path: /opt/gkr-debug/bin/test-dump-keyring.sh
+
+# Password for the login keyring (used by dump-keyring0-format)
+gkr_login_password: fedora
