@@ -37,7 +37,7 @@ updated.
 
 Upon consulting my backups, I found that no recent backup could be unlocked 
 with my login password. I proceeded through the historical backups, until I found
-one that could be unlocked which was from the 11/May some 10 days before. This
+one that could be unlocked which was from some 10 days before. This
 was odd, as I had been using vscode and other applications which use libsecrets
 frequently in that period.
 

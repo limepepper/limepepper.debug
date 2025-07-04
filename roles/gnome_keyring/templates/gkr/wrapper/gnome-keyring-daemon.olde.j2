@@ -1,0 +1,98 @@
+#!/bin/bash
+
+set -eu ; set -o pipefail
+
+if [[ -t 0 ]]; then
+  printf "== no stdin detected ==\n" >> "${HOME}/.local/log/gkr-wrapper.log"
+  stdin_input="no-stdin-passwd"  # No stdin, set empty
+else
+  stdin_input=$(cat /dev/stdin)  # Read stdin
+fi
+
+ARGS=$(printf '%q ' "$@")
+ARGS="${ARGS%"${ARGS##*[![:space:]]}"}"
+
+printf "== stdin ==\n" >> "${HOME}/.local/log/gkr-wrapper.log"
+printf "\"%s\"\n" $stdin_input >> "${HOME}/.local/log/gkr-wrapper.log"
+printf "== end stdin ==\n" >> "${HOME}/.local/log/gkr-wrapper.log"
+
+mkdir -p "${HOME}/.local/log"
+echo "keyring-wrapper: [$(pwd)] PID=$$ called with: $@" >> "${HOME}/.local/log/gkr-wrapper.log"
+
+# If gdb fails to load the script and exits, it unhelpfully exits with 0
+# and no useful error message is printed to the journal
+# so we can check if the script can be parsed correctly
+# Try running gdb with a simple noop command to test if the script is valid
+echo "=== GDB OUTPUT START ===" > "${HOME}/.local/log/gdb.test.$$.tmp"
+set +e # Disable exit on error for the GDB test
+/usr/bin/gdb \
+  --batch \
+  -ex "set logging enabled off" \
+  -ex "set logging redirect off" \
+  -ex "set logging file ${HOME}/.local/log/gdb.test.$$.log" \
+  -ex "set logging enabled on" \
+  -x "/opt/gkr-debug/gkr-debug.gdb" \
+  --args /usr/bin/echo "$@" >> "${HOME}/.local/log/gdb.test.$$.tmp" 2>&1
+gdb_exit_code=$?
+set -e
+echo "=== GDB OUTPUT END ===" >> "${HOME}/.local/log/gdb.test.$$.tmp"
+echo "GDB exit code: $gdb_exit_code" >> "${HOME}/.local/log/gdb.test.$$.tmp"
+
+# If GDB failed, append the test output to the main log
+if [ $gdb_exit_code -ne 0 ]; then
+    echo "!!! GDB test failed, appending output to main log:" >> "${HOME}/.local/log/gkr-wrapper.log"
+    cat "${HOME}/.local/log/gdb.test.$$.log" >> "${HOME}/.local/log/gkr-wrapper.log"
+    cat "${HOME}/.local/log/gdb.test.$$.tmp" >> "${HOME}/.local/log/gkr-wrapper.tmp"
+    echo "!!! end GDB test failed, appending output to main log:" >> "${HOME}/.local/log/gkr-wrapper.log"
+fi
+
+# Clean up temp files
+rm -f "${HOME}/.local/log/gdb.test.$$.tmp"
+rm -f "${HOME}/.local/log/gdb.test.$$.log"
+
+background(){
+
+  local stdin_file="$1"
+nohup /usr/bin/gdb \
+  --batch \
+  --return-child-result \
+  -ex "set logging enabled off" \
+  -ex "set logging redirect on" \
+  -ex "set logging file ${HOME}/.local/log/gdb.txt" \
+  -ex "set logging enabled on" \
+  -ex "set pagination off" \
+  -ex "set breakpoint pending on" \
+  -ex "set debuginfod enabled on" \
+  -x "/opt/gkr-debug/gkr-debug.gdb" \
+  -ex "run ${ARGS} < ${stdin_file}" \
+  -ex "info inferiors" \
+  -ex "inferior" \
+  /usr/bin/gnome-keyring-daemon.real &
+}
+
+foreground(){
+exec /usr/bin/gdb \
+  --batch \
+  --return-child-result \
+  -ex "set logging enabled off" \
+  -ex "set logging redirect on" \
+  -ex "set logging file ${HOME}/.local/log/gdb.txt" \
+  -ex "set logging enabled on" \
+  -ex "set pagination off" \
+  -ex "set breakpoint pending on" \
+  -ex "set debuginfod enabled on" \
+  -x "/opt/gkr-debug/gkr-debug.gdb" \
+  -ex "run ${ARGS}" \
+  -ex "info inferiors" \
+  -ex "inferior" \
+  /usr/bin/gnome-keyring-daemon.real
+}
+
+if [[ "$stdin_input" == "no-stdin-passwd" ]]; then
+  foreground
+else
+  tmpfile=$(mktemp)
+  printf "%s" "$stdin_input" > $tmpfile
+  background $tmpfile
+  exit 0
+fi
